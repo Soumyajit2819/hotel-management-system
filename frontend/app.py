@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import time
 
 import pandas as pd
 import requests
@@ -61,22 +62,34 @@ if "logged_in" not in st.session_state:
 
 
 def api(method: str, endpoint: str, **kwargs):
-    try:
-        response = requests.request(method.upper(), f"{API}{endpoint}", timeout=15, **kwargs)
-        response.raise_for_status()
-        if response.content:
-            return response.json()
-        return None
-    except requests.HTTPError as exc:
+    last_error = None
+    for attempt in range(2):
         try:
-            message = exc.response.json().get("detail", str(exc))
-        except Exception:
-            message = str(exc)
-        st.error(message)
-        return None
-    except Exception as exc:
-        st.error(f"Backend connection failed: {exc}")
-        return None
+            response = requests.request(method.upper(), f"{API}{endpoint}", timeout=45, **kwargs)
+            response.raise_for_status()
+            if response.content:
+                return response.json()
+            return None
+        except requests.HTTPError as exc:
+            try:
+                message = exc.response.json().get("detail", str(exc))
+            except Exception:
+                message = str(exc)
+            st.error(message)
+            return None
+        except requests.exceptions.ReadTimeout as exc:
+            last_error = exc
+            if attempt == 0:
+                st.info("Backend is waking up. Retrying once...")
+                time.sleep(3)
+                continue
+        except Exception as exc:
+            last_error = exc
+            if attempt == 0:
+                time.sleep(2)
+                continue
+    st.error(f"Backend connection failed: {last_error}")
+    return None
 
 
 def section(title: str, subtitle: str = ""):
