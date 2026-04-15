@@ -229,15 +229,19 @@ def log_login_event(db: Session, request: Request, user: User) -> None:
     db.add(event)
     db.flush()
     if mongo_collection is not None:
-        mongo_collection.insert_one(
-            {
-                "user_id": user.id,
-                "username": user.username,
-                "role": user.role,
-                "login_at": event.login_at,
-                "client_ip": event.client_ip,
-            }
-        )
+        try:
+            mongo_collection.insert_one(
+                {
+                    "user_id": user.id,
+                    "username": user.username,
+                    "role": user.role,
+                    "login_at": event.login_at,
+                    "client_ip": event.client_ip,
+                }
+            )
+        except Exception as exc:
+            # MongoDB mirroring is optional; login should still succeed if Atlas is unavailable.
+            print(f"Mongo login event mirror failed: {exc}")
 
 
 class LoginSchema(BaseModel):
