@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
-API = "http://127.0.0.1:8000"
+API = "https://hotel-management-system-h4lq.onrender.com"
 
 st.set_page_config(page_title="Hotel Management System", page_icon="🏨", layout="wide")
 
